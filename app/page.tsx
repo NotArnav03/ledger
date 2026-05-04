@@ -17,6 +17,8 @@ import GoalModal from "@/components/GoalModal";
 import DiveModal from "@/components/DiveModal";
 import RecurringBanner from "@/components/RecurringBanner";
 import ScenarioPlanner from "@/components/ScenarioPlanner";
+import CashFlowForecast from "@/components/CashFlowForecast";
+import SubscriptionRadar from "@/components/SubscriptionRadar";
 
 import { loadAll, saveAll, newId } from "@/lib/api";
 import { seedGoals, seedTransactions } from "@/lib/seed";
@@ -34,6 +36,7 @@ import {
   time24,
 } from "@/lib/format";
 import {
+  cashFlowForecast,
   categoryTrendSeries,
   expenseCategoryStats,
   flowSeries,
@@ -41,6 +44,7 @@ import {
   monthsWithData,
   recentMonthlyNet,
   scenarioBase,
+  subscriptionRadar,
   topOutflows,
   totalsFor,
 } from "@/lib/compute";
@@ -166,6 +170,8 @@ export default function Page() {
   const flow = useMemo(() => flowSeries(txs, monthKey, 6), [txs, monthKey]);
   const catTrend = useMemo(() => categoryTrendSeries(txs, monthKey, 6), [txs, monthKey]);
   const scenBase = useMemo(() => scenarioBase(txs, monthKey, 3), [txs, monthKey]);
+  const forecast = useMemo(() => cashFlowForecast(txs, monthKey), [txs, monthKey]);
+  const subs = useMemo(() => subscriptionRadar(txs, monthKey), [txs, monthKey]);
   const top3 = useMemo(() => topOutflows(txs, monthKey, 3), [txs, monthKey]);
   const monthTxCount = useMemo(
     () => txs.filter((t) => t.date.slice(0, 7) === monthKey).length,
@@ -493,6 +499,8 @@ export default function Page() {
 
       <KpiRow current={current} prior={prior} priorKey={priorKey} />
 
+      <CashFlowForecast forecast={forecast} monthKey={monthKey} />
+
       <section className="mt-14 grid gap-0 md:grid-cols-12">
         <div className="md:col-span-7 md:hairline-r md:pr-10">
           <Observation
@@ -526,6 +534,8 @@ export default function Page() {
       />
 
       <ScenarioPlanner base={scenBase} goals={goals} txs={txs} />
+
+      <SubscriptionRadar subscriptions={subs} />
 
       <Ledger
         transactions={txs}

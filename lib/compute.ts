@@ -1,5 +1,5 @@
 import type { Budgets, Transaction } from "./types";
-import { addMonths, monthKey, monthShort } from "./format";
+import { addMonths, currentMonthKey, monthKey, monthShort, todayISO } from "./format";
 import { newId } from "./api";
 
 export type MonthTotals = {
@@ -161,6 +161,111 @@ export function categoryTrendSeries(
     points.push(row);
   }
   return { points, categories };
+}
+
+export type ForecastResult = {
+  loggedNet: number;
+  pendingInflow: number;
+  pendingOutflow: number;
+  projectedNet: number;
+  daysLeft: number;
+  pendingItems: Array<{ label: string; amount: number; type: "income" | "expense" }>;
+};
+
+export function cashFlowForecast(
+  txs: Transaction[],
+  curMk: string
+): ForecastResult {
+  const today = todayISO();
+  const [y, m] = curMk.split("-").map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const todayDay = new Date().getDate();
+  const daysLeft = daysInMonth - todayDay;
+
+  // What's already logged this month
+  const monthTxs = txs.filter((t) => monthKey(t.date) === curMk);
+  let loggedInflow = 0;
+  let loggedOutflow = 0;
+  for (const t of monthTxs) {
+    if (t.type === "income") loggedInflow += t.amount;
+    else loggedOutflow += t.amount;
+  }
+  const loggedNet = loggedInflow - loggedOutflow;
+
+  // Recurring transactions from prior months not yet seen this month
+  const recurring = txs.filter((t) => t.recurring && !monthKey(t.date).startsWith(curMk));
+  const seen = new Set<string>();
+  const pendingItems: ForecastResult["pendingItems"] = [];
+
+  for (const t of recurring) {
+    const key = `${t.type}|${t.category}|${t.amount}|${t.note}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Skip if already generated this month
+    const alreadyLogged = monthTxs.some(
+      (m) => `${m.type}|${m.category}|${m.amount}|${m.note}` === key
+    );
+    if (alreadyLogged) continue;
+    pendingItems.push({
+      label: t.note || t.category,
+      amount: t.amount,
+      type: t.type as "income" | "expense",
+    });
+  }
+
+  const pendingInflow = pendingItems
+    .filter((p) => p.type === "income")
+    .reduce((s, p) => s + p.amount, 0);
+  const pendingOutflow = pendingItems
+    .filter((p) => p.type === "expense")
+    .reduce((s, p) => s + p.amount, 0);
+
+  return {
+    loggedNet,
+    pendingInflow,
+    pendingOutflow,
+    projectedNet: loggedNet + pendingInflow - pendingOutflow,
+    daysLeft,
+    pendingItems,
+  };
+}
+
+export type SubscriptionItem = {
+  label: string;
+  category: string;
+  amount: number;
+  monthsActive: number;
+  totalSpent: number;
+};
+
+export function subscriptionRadar(
+  txs: Transaction[],
+  curMk: string,
+  lookback = 6
+): SubscriptionItem[] {
+  const recurring = txs.filter((t) => t.recurring && t.type === "expense");
+  const map = new Map<string, { t: Transaction; months: Set<string> }>();
+
+  for (const t of recurring) {
+    const key = `${t.category}|${t.amount}|${t.note}`;
+    if (!map.has(key)) map.set(key, { t, months: new Set() });
+    map.get(key)!.months.add(monthKey(t.date));
+  }
+
+  const results: SubscriptionItem[] = [];
+  for (const [, { t, months }] of map) {
+    const activeMonths = months.size;
+    if (activeMonths === 0) continue;
+    results.push({
+      label: t.note || t.category,
+      category: t.category,
+      amount: t.amount,
+      monthsActive: activeMonths,
+      totalSpent: t.amount * activeMonths,
+    });
+  }
+
+  return results.sort((a, b) => b.amount - a.amount);
 }
 
 export type ScenarioBase = {
