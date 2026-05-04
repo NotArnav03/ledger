@@ -138,6 +138,31 @@ export function recentMonthlyNet(txs: Transaction[], mk: string, months = 3): nu
   return sum / months;
 }
 
+export type CategoryTrendPoint = { label: string; [cat: string]: number | string };
+
+export function categoryTrendSeries(
+  txs: Transaction[],
+  curMk: string,
+  months = 6
+): { points: CategoryTrendPoint[]; categories: string[] } {
+  const catSet = new Set<string>();
+  txs.forEach((t) => { if (t.type === "expense") catSet.add(t.category); });
+  const categories = Array.from(catSet).sort();
+
+  const points: CategoryTrendPoint[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const k = addMonths(curMk, -i);
+    const row: CategoryTrendPoint = { label: monthShort(k) };
+    for (const cat of categories) {
+      row[cat] = txs
+        .filter((t) => t.type === "expense" && t.category === cat && monthKey(t.date) === k)
+        .reduce((s, t) => s + t.amount, 0);
+    }
+    points.push(row);
+  }
+  return { points, categories };
+}
+
 export function generateRecurring(
   txs: Transaction[],
   curMonthKey: string

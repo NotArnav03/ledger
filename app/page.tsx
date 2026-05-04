@@ -6,6 +6,7 @@ import KpiRow from "@/components/KpiRow";
 import Observation from "@/components/Observation";
 import TopOutflows from "@/components/TopOutflows";
 import FlowChart from "@/components/FlowChart";
+import CategoryTrendsChart from "@/components/CategoryTrendsChart";
 import Envelopes from "@/components/Envelopes";
 import Goals from "@/components/Goals";
 import Ledger from "@/components/Ledger";
@@ -32,6 +33,7 @@ import {
   time24,
 } from "@/lib/format";
 import {
+  categoryTrendSeries,
   expenseCategoryStats,
   flowSeries,
   generateRecurring,
@@ -160,6 +162,7 @@ export default function Page() {
     [txs, monthKey, budgets]
   );
   const flow = useMemo(() => flowSeries(txs, monthKey, 6), [txs, monthKey]);
+  const catTrend = useMemo(() => categoryTrendSeries(txs, monthKey, 6), [txs, monthKey]);
   const top3 = useMemo(() => topOutflows(txs, monthKey, 3), [txs, monthKey]);
   const monthTxCount = useMemo(
     () => txs.filter((t) => t.date.slice(0, 7) === monthKey).length,
@@ -502,6 +505,8 @@ export default function Page() {
       </section>
 
       <FlowChart data={flow} />
+
+      <CategoryTrendsChart points={catTrend.points} categories={catTrend.categories} />
 
       <Envelopes
         stats={catStats}
