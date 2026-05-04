@@ -16,6 +16,7 @@ import TxModal from "@/components/TxModal";
 import GoalModal from "@/components/GoalModal";
 import DiveModal from "@/components/DiveModal";
 import RecurringBanner from "@/components/RecurringBanner";
+import ScenarioPlanner from "@/components/ScenarioPlanner";
 
 import { loadAll, saveAll, newId } from "@/lib/api";
 import { seedGoals, seedTransactions } from "@/lib/seed";
@@ -39,6 +40,7 @@ import {
   generateRecurring,
   monthsWithData,
   recentMonthlyNet,
+  scenarioBase,
   topOutflows,
   totalsFor,
 } from "@/lib/compute";
@@ -163,6 +165,7 @@ export default function Page() {
   );
   const flow = useMemo(() => flowSeries(txs, monthKey, 6), [txs, monthKey]);
   const catTrend = useMemo(() => categoryTrendSeries(txs, monthKey, 6), [txs, monthKey]);
+  const scenBase = useMemo(() => scenarioBase(txs, monthKey, 3), [txs, monthKey]);
   const top3 = useMemo(() => topOutflows(txs, monthKey, 3), [txs, monthKey]);
   const monthTxCount = useMemo(
     () => txs.filter((t) => t.date.slice(0, 7) === monthKey).length,
@@ -521,6 +524,8 @@ export default function Page() {
         onAdd={() => setGoalModalOpen(true)}
         onDelete={deleteGoal}
       />
+
+      <ScenarioPlanner base={scenBase} goals={goals} txs={txs} />
 
       <Ledger
         transactions={txs}

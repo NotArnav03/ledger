@@ -163,6 +163,57 @@ export function categoryTrendSeries(
   return { points, categories };
 }
 
+export type ScenarioBase = {
+  avgInflow: number;
+  avgNet: number;
+  avgByCategory: Record<string, number>;
+};
+
+export function scenarioBase(
+  txs: Transaction[],
+  curMk: string,
+  months = 3
+): ScenarioBase {
+  let inflowSum = 0;
+  const catSums: Record<string, number> = {};
+
+  for (let i = 1; i <= months; i++) {
+    const k = addMonths(curMk, -i);
+    for (const t of txs) {
+      if (monthKey(t.date) !== k) continue;
+      if (t.type === "income") inflowSum += t.amount;
+      else {
+        catSums[t.category] = (catSums[t.category] ?? 0) + t.amount;
+      }
+    }
+  }
+
+  const avgInflow = inflowSum / months;
+  const avgByCategory: Record<string, number> = {};
+  for (const [cat, sum] of Object.entries(catSums)) {
+    avgByCategory[cat] = sum / months;
+  }
+  const totalAvgExpense = Object.values(avgByCategory).reduce((s, v) => s + v, 0);
+  const avgNet = avgInflow - totalAvgExpense;
+
+  return { avgInflow, avgNet, avgByCategory };
+}
+
+export function applyScenario(
+  base: ScenarioBase,
+  adjustments: Record<string, number>
+): { net: number; byCategory: Record<string, number> } {
+  const byCategory: Record<string, number> = {};
+  let totalExpense = 0;
+  for (const [cat, avg] of Object.entries(base.avgByCategory)) {
+    const pct = adjustments[cat] ?? 0;
+    const adjusted = Math.max(0, avg * (1 + pct / 100));
+    byCategory[cat] = adjusted;
+    totalExpense += adjusted;
+  }
+  return { net: base.avgInflow - totalExpense, byCategory };
+}
+
 export function generateRecurring(
   txs: Transaction[],
   curMonthKey: string
