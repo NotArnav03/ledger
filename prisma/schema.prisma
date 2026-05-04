@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  transactions Transaction[]
+  budgets      Budget[]
+  goals        Goal[]
+  chats        ChatMessage[]
+  observations Observation[]
+}
+
+model Transaction {
+  id        String  @id
+  userId    String
+  date      String
+  type      String
+  category  String
+  amount    Int
+  note      String
+  recurring Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Budget {
+  userId   String
+  category String
+  amount   Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, category])
+}
+
+model Goal {
+  id        String @id
+  userId    String
+  name      String
+  target    Int
+  deadline  String
+  createdAt String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id      String @id @default(cuid())
+  userId  String
+  role    String
+  content String
+  time    String
+  ord     Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, ord])
+}
+
+model Observation {
+  userId   String
+  monthKey String
+  text     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, monthKey])
+}
