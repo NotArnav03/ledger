@@ -226,6 +226,12 @@ export default function Page() {
     [txs, monthKey]
   );
 
+  const monthContextKey = `ctx:${monthKey}`;
+  const monthContext = observations[monthContextKey] ?? "";
+  function setMonthContext(v: string) {
+    setObservations((prev) => ({ ...prev, [monthContextKey]: v }));
+  }
+
   // Observation
   const handleAnalyse = useCallback(async () => {
     setObserveError(null);
@@ -236,6 +242,7 @@ export default function Page() {
         transactions: txs,
         budgets,
         goals,
+        monthContext: observations[`ctx:${monthKey}`] || undefined,
       });
       setObservations((prev) => ({ ...prev, [monthKey]: text }));
     } catch (err) {
@@ -508,6 +515,8 @@ export default function Page() {
             loading={observeLoading}
             error={observeError}
             onAnalyse={handleAnalyse}
+            context={monthContext}
+            onContextChange={setMonthContext}
           />
         </div>
         <div className="md:col-span-5 md:pl-10 mt-10 md:mt-0">

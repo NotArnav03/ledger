@@ -5,6 +5,7 @@ export type ObservePayload = {
   transactions: Transaction[];
   budgets: Budgets;
   goals: Goal[];
+  monthContext?: string;
 };
 
 export type CorrespondPayload = {
@@ -15,6 +16,7 @@ export type CorrespondPayload = {
     transactions: Transaction[];
     budgets: Budgets;
     goals: Goal[];
+    monthContext?: string;
   };
 };
 

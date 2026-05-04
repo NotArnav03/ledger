@@ -8,6 +8,8 @@ type Props = {
   loading: boolean;
   onAnalyse: () => void;
   error: string | null;
+  context: string;
+  onContextChange: (v: string) => void;
 };
 
 export default function Observation({
@@ -15,6 +17,8 @@ export default function Observation({
   loading,
   onAnalyse,
   error,
+  context,
+  onContextChange,
 }: Props) {
   const [expanded] = useState(true);
   const hasText = !!text;
@@ -31,6 +35,19 @@ export default function Observation({
           {hasText ? "Redraft" : "Analyse"}
           <span className="text-[10px] opacity-60">↳</span>
         </button>
+      </div>
+
+      <div className="mt-4 flex items-baseline gap-3 hairline-b pb-4">
+        <label className="small-caps shrink-0">This month</label>
+        <input
+          type="text"
+          value={context}
+          onChange={(e) => onContextChange(e.target.value)}
+          placeholder="Exams, trip home, stressful week… (optional context for AI)"
+          className="serif text-ink py-1 flex-1 text-mute"
+          style={{ fontSize: 13 }}
+          maxLength={120}
+        />
       </div>
 
       <div className="mt-6 serif-italic text-ink" style={{ fontSize: 17, lineHeight: 1.55 }}>

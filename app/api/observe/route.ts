@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       );
     }
     const body = await req.json();
-    const { monthKey, transactions, budgets, goals } = body ?? {};
+    const { monthKey, transactions, budgets, goals, monthContext } = body ?? {};
     if (!monthKey || !Array.isArray(transactions)) {
       return NextResponse.json(
         { error: "Invalid payload." },
@@ -38,14 +38,19 @@ export async function POST(req: Request) {
       transactions: monthTx,
     };
 
+    const contextLine = monthContext
+      ? `\nLife context this month (user note): "${monthContext}". Reference this if it explains spending patterns.\n`
+      : "";
+
     const prompt =
       "You are a precise, no-nonsense financial observer writing a brief monthly note for an Indian student (currency INR, ₹). Write three short paragraphs, plain prose only — no markdown, no bullet points, no headers, no greeting.\n\n" +
       "Paragraph 1 — Headline: the single most important thing about this month. One specific number that matters.\n" +
       "Paragraph 2 — Concern: the category or transaction that warrants attention. Be specific; reference actual amounts. If nothing is concerning, note what's going unusually right instead.\n" +
       "Paragraph 3 — Suggestion: one concrete, actionable move for next month. Tied to their numbers, not generic.\n\n" +
       "Tone: observational, slightly dry, respectful of the reader's intelligence. Don't cheerlead. No \"great job\" or \"awesome\". Think: a careful accountant, not a coach.\n\n" +
-      "Keep under 160 words total.\n\n" +
-      "Data: " +
+      "Keep under 160 words total.\n" +
+      contextLine +
+      "\nData: " +
       JSON.stringify(payload);
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
