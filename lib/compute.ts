@@ -1,5 +1,6 @@
 import type { Budgets, Transaction } from "./types";
 import { addMonths, monthKey, monthShort } from "./format";
+import { newId } from "./api";
 
 export type MonthTotals = {
   inflow: number;
@@ -135,6 +136,40 @@ export function recentMonthlyNet(txs: Transaction[], mk: string, months = 3): nu
     sum += t.net;
   }
   return sum / months;
+}
+
+export function generateRecurring(
+  txs: Transaction[],
+  curMonthKey: string
+): Transaction[] {
+  const recurring = txs.filter((t) => t.recurring);
+  if (recurring.length === 0) return [];
+
+  // fingerprint → most-recent transaction for that series
+  const latest = new Map<string, Transaction>();
+  for (const t of recurring) {
+    const key = `${t.type}|${t.category}|${t.amount}|${t.note}`;
+    const prev = latest.get(key);
+    if (!prev || t.date > prev.date) latest.set(key, t);
+  }
+
+  const generated: Transaction[] = [];
+  for (const [key, tmpl] of latest) {
+    // already exists in current month
+    const alreadyHas = recurring.some(
+      (t) =>
+        `${t.type}|${t.category}|${t.amount}|${t.note}` === key &&
+        t.date.startsWith(curMonthKey)
+    );
+    if (alreadyHas) continue;
+    // only generate if the template is from a prior month
+    if (tmpl.date.startsWith(curMonthKey)) continue;
+
+    const [y, m] = curMonthKey.split("-");
+    const date = `${y}-${m}-01`;
+    generated.push({ ...tmpl, id: newId(), date });
+  }
+  return generated;
 }
 
 export function computeGoalSaved(

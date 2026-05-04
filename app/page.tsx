@@ -14,6 +14,7 @@ import Colophon from "@/components/Colophon";
 import TxModal from "@/components/TxModal";
 import GoalModal from "@/components/GoalModal";
 import DiveModal from "@/components/DiveModal";
+import RecurringBanner from "@/components/RecurringBanner";
 
 import { loadAll, saveAll, newId } from "@/lib/api";
 import { seedGoals, seedTransactions } from "@/lib/seed";
@@ -33,6 +34,7 @@ import {
 import {
   expenseCategoryStats,
   flowSeries,
+  generateRecurring,
   monthsWithData,
   recentMonthlyNet,
   topOutflows,
@@ -60,6 +62,8 @@ export default function Page() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
+  const [recurringAdded, setRecurringAdded] = useState<import("@/lib/types").Transaction[]>([]);
+
   const [diveOpen, setDiveOpen] = useState(false);
   const [diveCategory, setDiveCategory] = useState<string | null>(null);
   const [diveText, setDiveText] = useState<string | null>(null);
@@ -75,7 +79,13 @@ export default function Page() {
       try {
         const data = await loadAll();
         if (cancelled) return;
-        setTxs(data.transactions);
+        const cur = currentMonthKey();
+        const generated = generateRecurring(data.transactions, cur);
+        const allTxs = generated.length > 0
+          ? [...generated, ...data.transactions]
+          : data.transactions;
+        setTxs(allTxs);
+        if (generated.length > 0) setRecurringAdded(generated);
         setBudgets(
           Object.keys(data.budgets).length > 0 ? data.budgets : DEFAULT_BUDGETS
         );
@@ -461,6 +471,12 @@ export default function Page() {
         padding: "40px 40px 80px",
       }}
     >
+      <RecurringBanner
+        added={recurringAdded}
+        monthKey={monthKey}
+        onDismiss={() => setRecurringAdded([])}
+      />
+
       <Header
         monthKey={monthKey}
         monthOptions={monthOptions}
